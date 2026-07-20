@@ -113,6 +113,10 @@ case "$OS_KERNEL" in
       x86_64)  PKG_ARCH="x64" ;;
       *) die "Unsupported Windows arch: $ARCH" ;;
     esac
+    sub "NOTE: For regular Windows (PowerShell), use install.ps1 instead:"
+    sub "  winget install artyfex.ArtyMD"
+    sub "  or: irm https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/main/install.ps1 | iex"
+    echo ""
     ;;
   *) die "Unsupported OS: $OS_KERNEL (ArtyMD supports Linux, macOS, and Windows)" ;;
 esac

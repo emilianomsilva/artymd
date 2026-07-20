@@ -26,23 +26,29 @@
 
 ## Install
 
-### Linux / Windows / macOS (preferred)
+### Windows
+
+```powershell
+winget install artyfex.ArtyMD
+```
+
+Or use the PowerShell installer:
+
+```powershell
+irm https://raw.githubusercontent.com/emilianomsilva/artymd/main/install.ps1 | iex
+```
+
+### Linux / macOS
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/emilianomsilva/artymd/main/install.sh | sudo bash
 ```
 
-The script auto-detects your OS/arch and downloads the latest release bundle. On Linux, `sudo` is required for system-wide installation via `.deb` or `.rpm`.
+The script auto-detects your OS/arch and downloads the latest release bundle.
 
 ### macOS (fallback — build from source)
 
-If no pre-built `.dmg` is available for your architecture, the installer automatically clones the repo and builds:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/emilianomsilva/artymd/main/install.sh | sudo bash
-```
-
-Requirements: Rust (1.77+), Node.js (20+). The installer will guide you through any missing dependencies.
+If no pre-built `.dmg` is available for your architecture, the installer automatically clones the repo and builds. Requirements: Rust (1.77+), Node.js (20+). The installer will guide you through any missing dependencies.
 
 ### Manual download
 
@@ -50,10 +56,10 @@ Download the latest release from [GitHub Releases](https://github.com/emilianoms
 
 | Platform | Bundle |
 |----------|--------|
+| Windows | `.msi` |
 | Linux (Debian/Ubuntu) | `.deb` |
 | Linux (Fedora/RHEL) | `.rpm` |
 | Linux (any) | `.AppImage` |
-| Windows | `.msi` |
 | macOS | `.dmg` |
 
 ## Build from source

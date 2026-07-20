@@ -1,0 +1,31 @@
+# Created using wingetcreate v1.12.0
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.12.0.schema.json
+
+PackageIdentifier: artyfex.ArtyMD
+PackageVersion: 0.1.2
+PackageLocale: en-US
+Publisher: Emiliano M. Silva
+PublisherUrl: https://github.com/emilianomsilva
+PublisherSupportUrl: https://github.com/emilianomsilva/artymd/issues
+PackageName: ArtyMD
+PackageUrl: https://github.com/emilianomsilva/artymd
+License: AGPL-3.0-or Later
+LicenseUrl: https://github.com/emilianomsilva/artymd/blob/main/LICENSE
+ShortDescription: Lightweight Markdown reader with live preview, KaTeX math rendering, and Mermaid diagrams.
+Description: >-
+  ArtyMD is a lightweight, cross-platform Markdown reader built with Tauri.
+  It features live preview with split-pane view, KaTeX math rendering
+  (inline and display mode), Mermaid diagram support, syntax highlighting
+  for 50+ languages, find-in-document search, auto-reload on file changes,
+  and print/PDF export with customizable themes and page settings.
+Tags:
+  - markdown
+  - reader
+  - editor
+  - preview
+  - katex
+  - mermaid
+  - markdown-reader
+  - markdown-viewer
+ManifestType: defaultLocale
+ManifestVersion: 1.12.0
