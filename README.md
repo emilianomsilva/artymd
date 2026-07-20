@@ -29,17 +29,17 @@
 ### Linux / Windows / macOS (preferred)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/emilianomsilva/artymd/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/emilianomsilva/artymd/main/install.sh | sudo bash
 ```
 
-The script auto-detects your OS/arch and downloads the latest release bundle.
+The script auto-detects your OS/arch and downloads the latest release bundle. On Linux, `sudo` is required for system-wide installation via `.deb` or `.rpm`.
 
 ### macOS (fallback — build from source)
 
 If no pre-built `.dmg` is available for your architecture, the installer automatically clones the repo and builds:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/emilianomsilva/artymd/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/emilianomsilva/artymd/main/install.sh | sudo bash
 ```
 
 Requirements: Rust (1.77+), Node.js (20+). The installer will guide you through any missing dependencies.
