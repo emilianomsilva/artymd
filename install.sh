@@ -529,7 +529,13 @@ sys.exit(1)
 # Privilege checks
 # ─────────────────────────────────────────────────────────────────────────────
 require_root() {
-  [ "$(id -u)" -eq 0 ] || die "This step requires root. Try: sudo $0 $*"
+  if [ "$(id -u)" -ne 0 ]; then
+    if [ -f "$0" ]; then
+      exec sudo bash "$0" "$@"
+    else
+      die "This step requires root. Re-run with:\n  curl -fsSL https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/main/install.sh | sudo bash"
+    fi
+  fi
 }
 
 require_admin() {
