@@ -57,11 +57,27 @@ function Request-Admin {
     $principal = [Security.Principal.WindowsPrincipal]::new($identity)
     if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
         Write-Info "Requesting admin privileges..."
-        $args = @()
-        if ($PurgeData) { $args += "-PurgeData" }
-        Start-Process -FilePath "powershell.exe" -ArgumentList @(
-            "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $MyInvocation.ScriptName
-        ) + $args -Verb RunAs -Wait
+        
+        $scriptArgs = @()
+        if ($PurgeData) { $scriptArgs += "-PurgeData" }
+
+        if ($MyInvocation.ScriptName) {
+            # Running from a file on disk
+            $powershellArgs = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $MyInvocation.ScriptName)
+            if ($scriptArgs) {
+                $powershellArgs += $scriptArgs
+            }
+        } else {
+            # Running in-memory (e.g. via iex)
+            $remoteUrl = "https://raw.githubusercontent.com/$GITHUB_OWNER/$GITHUB_REPO/main/install.ps1"
+            $cmd = "& ([scriptblock]::Create((irm '$remoteUrl')))"
+            if ($scriptArgs) {
+                $cmd += " " + ($scriptArgs -join " ")
+            }
+            $powershellArgs = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", $cmd)
+        }
+
+        Start-Process -FilePath "powershell.exe" -ArgumentList $powershellArgs -Verb RunAs -Wait
         exit
     }
 }
