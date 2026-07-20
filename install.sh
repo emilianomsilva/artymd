@@ -4,7 +4,7 @@
 #
 # Designed to work both as a local script AND piped from curl:
 #
-#   curl -fsSL https://raw.githubusercontent.com/artyfex/ArtyMD/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/emilianomsilva/artymd/main/install.sh | bash
 #
 # What it does (depends on the platform it runs on):
 #
