@@ -2,7 +2,7 @@
 
 # ArtyMD
 
-**Light Markdown editor** with live preview, KaTeX math rendering, and Mermaid diagrams.
+**Lightweight Markdown reader** with live preview, KaTeX math rendering, and Mermaid diagrams.
 
 [![AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
 [![Rust](https://img.shields.io/badge/Rust-000000?logo=rust&logoColor=white)](https://rust-lang.org)
@@ -15,7 +15,7 @@
 
 ## Features
 
-- **Live preview** — split-pane editor with instant rendered output
+- **Live preview** — split-pane reader with instant rendered output
 - **KaTeX math** — render LaTeX formulas inline and in display mode (`$...$` and `$$...$$`)
 - **Mermaid diagrams** — embed ` ```mermaid ` code blocks for flowcharts, sequence diagrams, and more
 - **Syntax highlighting** — over 50 languages supported in fenced code blocks

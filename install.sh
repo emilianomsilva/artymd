@@ -193,8 +193,8 @@ install_linux() {
   info "Linux install path"
   # Prefer a local .deb if we're run from a checkout (offline install).
   local local_deb=""
-  if [ -n "$PROJECT_DIR" ] && ls "$PROJECT_DIR"/release-packages/deb/*.deb >/dev/null 2>&1; then
-    local_deb="$(ls -1 "$PROJECT_DIR"/release-packages/deb/*.deb | head -n1)"
+  if [ -n "$PROJECT_DIR" ] && ls "$PROJECT_DIR"/src-tauri/target/release/bundle/deb/*.deb >/dev/null 2>&1; then
+    local_deb="$(ls -1 "$PROJECT_DIR"/src-tauri/target/release/bundle/deb/*.deb | head -n1)"
   fi
 
   # Decide which remote artifact to download: .deb if dpkg exists, .rpm if
@@ -340,7 +340,7 @@ install_windows() {
   # directly because msiexec is invoked via cmd which resolves it.
   info "Installing via msiexec..."
   # /i = install, /qn = quiet no UI, /norestart = don't reboot
-  msiexec /i "$(cygpath -w "$tmp/ArtyMD.msi" 2>/dev/null || echo "$tmp/ArtyMD.msi")" /norestart
+  msiexec /i "$(cygpath -w "$tmp/ArtyMD.msi" 2>/dev/null || echo "$tmp/ArtyMD.msi")" /qn /norestart
   sub "Done."
 }
 
@@ -366,12 +366,19 @@ install_macos() {
 }
 
 install_macos_dmg() {
-  local url="$1"
+  local source="$1"
   local tmp="$(mktemp -d)"
   trap "rm -rf '$tmp'" EXIT
 
-  curl -fsSL -o "$tmp/ArtyMD.dmg" "$url"
-  sub "Size: $(du -h "$tmp/ArtyMD.dmg" | cut -f1)"
+  local dmg_path
+  if echo "$source" | grep -qE '^https?://'; then
+    dmg_path="$tmp/ArtyMD.dmg"
+    curl -fsSL -o "$dmg_path" "$source"
+    sub "Size: $(du -h "$dmg_path" | cut -f1)"
+  else
+    dmg_path="$source"
+    sub "Using local .dmg: $dmg_path"
+  fi
 
   stop_running_instance
   [ "$PURGE_DATA" = true ] && purge_user_data
@@ -380,7 +387,7 @@ install_macos_dmg() {
   local mountpoint="/tmp/ArtyMD-$$-mount"
   mkdir -p "$mountpoint"
   info "Mounting .dmg..."
-  hdiutil attach "$tmp/ArtyMD.dmg" -mountpoint "$mountpoint" -nobrowse -quiet
+  hdiutil attach "$dmg_path" -mountpoint "$mountpoint" -nobrowse -quiet
 
   info "Copying ArtyMD.app to /Applications..."
   # The .dmg should contain ArtyMD.app at its root.
