@@ -13,9 +13,9 @@
 
 </div>
 
+
 ## Features
 
-- **Live preview** — split-pane reader with instant rendered output
 - **KaTeX math** — render LaTeX formulas inline and in display mode (`$...$` and `$$...$$`)
 - **Mermaid diagrams** — embed ` ```mermaid ` code blocks for flowcharts, sequence diagrams, and more
 - **Syntax highlighting** — over 50 languages supported in fenced code blocks
