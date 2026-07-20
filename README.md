@@ -2,9 +2,14 @@
 
 # ArtyMD
 
-**Light Markdown editor** with live preview, KaTeX math rendering, and Mermaid diagrams — built with Rust + Tauri 2 + Svelte 5.
+**Light Markdown editor** with live preview, KaTeX math rendering, and Mermaid diagrams.
 
 [![AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
+[![Rust](https://img.shields.io/badge/Rust-000000?logo=rust&logoColor=white)](https://rust-lang.org)
+[![Tauri](https://img.shields.io/badge/Tauri-000000?logo=tauri&logoColor=white)](https://tauri.app)
+[![Svelte](https://img.shields.io/badge/Svelte-FF3E00?logo=svelte&logoColor=white)](https://svelte.dev)
+[![KaTeX](https://img.shields.io/badge/KaTeX-008080?logo=katex&logoColor=white)](https://katex.org)
+[![Mermaid](https://img.shields.io/badge/Mermaid-FF3670?logo=mermaid&logoColor=white)](https://mermaid.js.org)
 
 </div>
 
