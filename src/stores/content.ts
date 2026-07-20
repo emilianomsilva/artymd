@@ -84,7 +84,24 @@ export function openFileInTab(contents: string, path: string, name: string) {
   const list = get(tabsList);
   const existingTab = list.find(t => t.path === path);
   if (existingTab) {
-    switchTab(existingTab.id);
+    const activeId = get(activeTabId);
+    // Refresh the tab's cached text so disk reloads are reflected.
+    tabsList.update(tabs =>
+      tabs.map(t => t.id === existingTab.id ? { ...t, text: contents } : t)
+    );
+    if (existingTab.id === activeId) {
+      // Active tab: update the visible content directly. Guard with
+      // isSyncingStore so the currentFileText subscriber doesn't
+      // redundantly re-write tabsList (already updated above).
+      isSyncingStore = true;
+      currentFileText.set(contents);
+      isSyncingStore = false;
+      // Re-attach the file watcher + restore scroll + reset mermaid.
+      notifyTabSwitch();
+    } else {
+      // Inactive tab: switch to it (loads the freshly-updated cached text).
+      switchTab(existingTab.id);
+    }
     return;
   }
 
@@ -98,6 +115,10 @@ export function openFileInTab(contents: string, path: string, name: string) {
     currentFilePath.set(path);
     currentFileName.set(name);
     currentFileText.set(contents);
+    // Start the file watcher for the newly opened file. Without this,
+    // the watcher only starts on tab switches, so the first file opened
+    // into the default Untitled tab would never be watched.
+    notifyTabSwitch();
   }
 }
 
