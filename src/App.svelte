@@ -2,7 +2,7 @@
   import Header from './components/Header.svelte';
   import TabBar from './components/TabBar.svelte';
   import Sidebar from './components/Sidebar.svelte';
-  import EditorContainer from './components/EditorContainer.svelte';
+  import ViewerContainer from './components/ViewerContainer.svelte';
   import DefaultAppPrompt from './components/DefaultAppPrompt.svelte';
   import { theme } from './stores/config';
   import { onMount } from 'svelte';
@@ -94,7 +94,7 @@
   <div class="main-content">
     <Sidebar />
     <main class="content-viewport">
-      <EditorContainer />
+      <ViewerContainer />
     </main>
   </div>
 

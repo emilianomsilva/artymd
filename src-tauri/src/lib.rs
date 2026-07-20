@@ -69,19 +69,33 @@ fn filter_md_args(args: &[String]) -> Vec<String> {
 }
 
 fn lockfile_path() -> std::path::PathBuf {
-    let base = std::env::var_os("XDG_RUNTIME_DIR")
-        .or_else(|| std::env::var_os("TMPDIR"))
-        .map(std::path::PathBuf::from)
-        .unwrap_or_else(|| std::path::PathBuf::from("/tmp"));
-    base.join(format!("artymd-{}.lock", unsafe { libc::getuid() }))
+    #[cfg(unix)]
+    {
+        let base = std::env::var_os("XDG_RUNTIME_DIR")
+            .or_else(|| std::env::var_os("TMPDIR"))
+            .map(std::path::PathBuf::from)
+            .unwrap_or_else(|| std::path::PathBuf::from("/tmp"));
+        base.join(format!("artymd-{}.lock", unsafe { libc::getuid() }))
+    }
+    #[cfg(not(unix))]
+    {
+        std::env::temp_dir().join("artymd.lock")
+    }
 }
 
 fn argsfile_path() -> std::path::PathBuf {
-    let base = std::env::var_os("XDG_RUNTIME_DIR")
-        .or_else(|| std::env::var_os("TMPDIR"))
-        .map(std::path::PathBuf::from)
-        .unwrap_or_else(|| std::path::PathBuf::from("/tmp"));
-    base.join(format!("artymd-{}.args", unsafe { libc::getuid() }))
+    #[cfg(unix)]
+    {
+        let base = std::env::var_os("XDG_RUNTIME_DIR")
+            .or_else(|| std::env::var_os("TMPDIR"))
+            .map(std::path::PathBuf::from)
+            .unwrap_or_else(|| std::path::PathBuf::from("/tmp"));
+        base.join(format!("artymd-{}.args", unsafe { libc::getuid() }))
+    }
+    #[cfg(not(unix))]
+    {
+        std::env::temp_dir().join("artymd.args")
+    }
 }
 
 #[tauri::command]

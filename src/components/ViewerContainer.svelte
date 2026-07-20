@@ -468,7 +468,7 @@
 />
 
 <div
-  class="editor-container"
+  class="viewer-container"
   dir={$rtl ? 'rtl' : 'ltr'}
 >
   <div class="view-viewport-wrapper">
@@ -552,7 +552,7 @@
 <FindBar bind:this={findBar} />
 
 <style>
-  .editor-container {
+  .viewer-container {
     flex-grow: 1;
     height: calc(100vh - var(--header-height) - var(--tabbar-height));
     display: flex;
