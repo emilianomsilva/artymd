@@ -26,33 +26,25 @@
 
 ## Install
 
-### Windows
-
-```powershell
-winget install artyfex.ArtyMD
-```
-
-Or use the PowerShell installer:
-
-```powershell
-irm https://raw.githubusercontent.com/emilianomsilva/artymd/main/install.ps1 | iex
-```
-
-### Linux / macOS
+### Linux
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/emilianomsilva/artymd/main/install.sh | sudo bash
 ```
 
-The script auto-detects your OS/arch and downloads the latest release bundle.
+Or download the latest `.deb`, `.rpm`, or `.AppImage` from [GitHub Releases](https://github.com/emilianomsilva/artymd/releases).
 
-### macOS (fallback — build from source)
+### Windows
 
-If no pre-built `.dmg` is available for your architecture, the installer automatically clones the repo and builds. Requirements: Rust (1.77+), Node.js (20+). The installer will guide you through any missing dependencies.
+Download the latest `.msi` from [GitHub Releases](https://github.com/emilianomsilva/artymd/releases).
 
-### Manual download
+> **Note:** ArtyMD is a new project and does not yet have a Windows code-signing certificate. Windows may show a SmartScreen warning. The source code is fully transparent — review it, build it yourself, or check the community — the application will not harm your computer.
 
-Download the latest release from [GitHub Releases](https://github.com/emilianomsilva/artymd/releases).
+### macOS
+
+Download the latest `.dmg` from [GitHub Releases](https://github.com/emilianomsilva/artymd/releases). If no pre-built `.dmg` is available for your architecture, you can [build from source](#build-from-source).
+
+Requirements: Rust (1.77+), Node.js (20+).
 
 | Platform | Bundle |
 |----------|--------|
