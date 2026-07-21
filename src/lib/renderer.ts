@@ -119,7 +119,8 @@ markedInstance.use({
   renderer: {
     code({ text, lang }) {
       if (lang === 'mermaid') {
-        return `<div class="mermaid">${escapeHtml(text)}</div>`;
+        const cleanedText = text.trim().replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+        return `<div class="mermaid">${escapeHtml(cleanedText)}</div>`;
       }
       const validLanguage = lang && hljs.getLanguage(lang) ? lang : 'plaintext';
       const highlighted = hljs.highlight(text, { language: validLanguage }).value;

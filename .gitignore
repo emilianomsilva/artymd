@@ -41,5 +41,5 @@ release-packages/
 
 # OpenCode
 AGENTS.md
-PROMPT.md
 .codegraph/
+install_local.sh

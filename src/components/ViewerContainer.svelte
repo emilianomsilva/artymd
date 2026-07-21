@@ -6,7 +6,7 @@
   import { renderMarkdown } from '../lib/renderer';
   import { locale, t } from '../lib/i18n';
   import { readTextFile } from '@tauri-apps/plugin-fs';
-  import mermaid from 'mermaid';
+  import { renderMermaidDiagrams, initializeMermaid } from '../lib/mermaid-renderer';
   import { startFileWatcher, stopFileWatcher } from '../lib/file-watcher';
   import FindBar from './FindBar.svelte';
   import { tick } from 'svelte';
@@ -21,15 +21,8 @@
   // Initialize and run Mermaid reactively
   $effect(() => {
     const isDark = $theme === 'dark';
-    mermaid.initialize({
-      startOnLoad: false,
-      theme: isDark ? 'dark' : 'default',
-      securityLevel: 'strict'
-    });
+    initializeMermaid(isDark);
   });
-
-  // Track processed mermaid elements to avoid re-processing
-  let mermaidInitialized = $state(false);
 
   // Reading-position memory (G7): remember scroll offset per file path.
   const scrollMemory = new Map<string, number>();
@@ -93,28 +86,14 @@
     const html = renderedHtml;
     const isDark = $theme === 'dark';
 
-    // Re-initialize mermaid when theme changes
-    if (mermaidInitialized) {
-      mermaid.initialize({
-        startOnLoad: false,
-        theme: isDark ? 'dark' : 'default',
-        securityLevel: 'strict'
-      });
-    }
-    mermaidInitialized = true;
-
-    setTimeout(() => {
-      try {
-        const els = document.querySelectorAll('.mermaid:not([data-processed])');
-        if (els.length > 0) {
-          mermaid.run({
-            nodes: Array.from(els) as HTMLElement[]
-          });
-        }
-      } catch (err) {
-        console.error('Mermaid render error:', err);
+    const timer = setTimeout(async () => {
+      const container = document.querySelector('.markdown-body') as HTMLElement | null;
+      if (container) {
+        await renderMermaidDiagrams(container, isDark);
       }
     }, 60);
+
+    return () => clearTimeout(timer);
   });
 
   // View Mode Zoom & Pan State
