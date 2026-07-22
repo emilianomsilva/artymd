@@ -52,24 +52,12 @@ export function preprocessMermaidCode(code: string): string {
     return `${prefix}${dir.toUpperCase()}`;
   });
 
-  // 5. Auto-quote unquoted subgraph titles with spaces or parentheses
-  cleaned = cleaned.replace(/^(\s*subgraph\s+)(?![^\n]*\[)([^"\n]+?\([^\n]+\)[^\n]*)$/gm, (_, prefix, title) => {
-    const t = title.trim();
-    if (t.startsWith('"') && t.endsWith('"')) return `${prefix}${t}`;
-    return `${prefix}"${t.replace(/"/g, "'")}"`;
-  });
-
-  // 6. Auto-quote edge/link annotations containing parens
-  cleaned = cleaned.replace(/--\s+([^"\n|]+?\([^\n|]+\)[^"\n|]*?)\s+-->/g, (_, annotation) => {
-    const a = annotation.trim();
-    if (a.startsWith('"') && a.endsWith('"')) return `-- "${a}" -->`;
-    return `-- "${a.replace(/"/g, "'")}" -->`;
-  });
-
   const quoteIfNeeded = (text: string) => {
     let t = text.trim();
     if (!t) return t;
-    if (t.startsWith('"') && t.endsWith('"')) return t;
+    if ((t.startsWith('"') && t.endsWith('"')) || (t.startsWith("'") && t.endsWith("'"))) {
+      return t;
+    }
     if (/[()\[\]{}#:]/.test(t)) {
       t = t.replace(/"/g, "'");
       return `"${t}"`;
@@ -77,48 +65,64 @@ export function preprocessMermaidCode(code: string): string {
     return t;
   };
 
-  // 7. Auto-quote unquoted node labels across all shape syntax
-  // Stadium ([...])
-  cleaned = cleaned.replace(/([a-zA-Z0-9_-]+)\(\[\s*(.*?)\s*\]\)/g, (_, id, label) => {
-    return `${id}([${quoteIfNeeded(label)}])`;
+  const lines = cleaned.split('\n');
+  const processedLines = lines.map(line => {
+    let l = line;
+
+    if (/^\s*(?:graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|gitGraph|mindmap|timeline|architecture)\b/i.test(l)) {
+      return l;
+    }
+
+    if (/^\s*subgraph\b/i.test(l) && !l.includes('[') && !l.includes('"')) {
+      return l.replace(/^(\s*subgraph\s+)(.+)$/i, (_, p, title) => `${p}"${title.trim()}"`);
+    }
+
+    l = l.replace(/--\s+([^"\n|]+?\([^\n|]+\)[^"\n|]*?)\s+-->/g, (_, annotation) => {
+      return `-- ${quoteIfNeeded(annotation)} -->`;
+    });
+
+    l = l.replace(/([a-zA-Z0-9_-]+)\(\[\s*(.*?)\s*\]\)/g, (_, id, label) => {
+      return `${id}([${quoteIfNeeded(label)}])`;
+    });
+
+    l = l.replace(/([a-zA-Z0-9_-]+)\[\[\s*(.*?)\s*\]\]/g, (_, id, label) => {
+      const q = quoteIfNeeded(label);
+      return `${id}[[${q}]]`;
+    });
+
+    l = l.replace(/([a-zA-Z0-9_-]+)\[\(\s*(.*?)\s*\)\]/g, (_, id, label) => {
+      return `${id}[(${quoteIfNeeded(label)})]`;
+    });
+
+    l = l.replace(/([a-zA-Z0-9_-]+)\(\(\s*(.*?)\s*\)\)/g, (_, id, label) => {
+      return `${id}((${quoteIfNeeded(label)}))`;
+    });
+
+    l = l.replace(/([a-zA-Z0-9_-]+)\[(?![\[\(])\s*([^\]]*?)\s*\]/g, (_, id, label) => {
+      return `${id}[${quoteIfNeeded(label)}]`;
+    });
+
+    l = l.replace(/([a-zA-Z0-9_-]+)\{\s*([^\}]*?)\s*\}/g, (_, id, label) => {
+      return `${id}{${quoteIfNeeded(label)}}`;
+    });
+
+    l = l.replace(/([a-zA-Z0-9_-]+)>\s*([^\]]*?)\s*\]/g, (_, id, label) => {
+      return `${id}>[${quoteIfNeeded(label)}]`;
+    });
+
+    l = l.replace(/([a-zA-Z0-9_-]+)\((?!\(|\[)\s*([^\)]*?)\s*\)/g, (_, id, label) => {
+      return `${id}(${quoteIfNeeded(label)})`;
+    });
+
+    return l;
   });
 
-  // Cylinder [(...)]
-  cleaned = cleaned.replace(/([a-zA-Z0-9_-]+)\[\(\s*(.*?)\s*\)\]/g, (_, id, label) => {
-    return `${id}[(${quoteIfNeeded(label)})]`;
-  });
-
-  // Circle ((...))
-  cleaned = cleaned.replace(/([a-zA-Z0-9_-]+)\(\(\s*(.*?)\s*\)\)/g, (_, id, label) => {
-    return `${id}((${quoteIfNeeded(label)}))`;
-  });
-
-  // Rectangle [ ... ]
-  cleaned = cleaned.replace(/([a-zA-Z0-9_-]+)\[(?![\[\(])\s*(.*?)\s*\]/g, (_, id, label) => {
-    return `${id}[${quoteIfNeeded(label)}]`;
-  });
-
-  // Rhombus { ... }
-  cleaned = cleaned.replace(/([a-zA-Z0-9_-]+)\{\s*(.*?)\s*\}/g, (_, id, label) => {
-    return `${id}{${quoteIfNeeded(label)}}`;
-  });
-
-  // Asymmetric > ... ]
-  cleaned = cleaned.replace(/([a-zA-Z0-9_-]+)>\s*(.*?)\s*\]/g, (_, id, label) => {
-    return `${id}>[${quoteIfNeeded(label)}]`;
-  });
-
-  // Rounded ( ... )
-  cleaned = cleaned.replace(/([a-zA-Z0-9_-]+)\((?!\(|\[)\s*(.*?)\s*\)(?!\))/g, (_, id, label) => {
-    return `${id}(${quoteIfNeeded(label)})`;
-  });
-
-  return cleaned;
+  return processedLines.join('\n');
 }
 
 /**
  * Finds and renders all un-processed Mermaid diagrams inside a container element.
- * Handles whitespace trimming, line-ending normalization, auto-fixing syntax bugs, and per-diagram error handling.
+ * Uses a Native-First, Multi-Stage Auto-Fixer Pipeline for universal diagram support.
  */
 export async function renderMermaidDiagrams(container: HTMLElement, isDark: boolean) {
   if (!mermaidInitialized) {
@@ -128,39 +132,55 @@ export async function renderMermaidDiagrams(container: HTMLElement, isDark: bool
   const els = container.querySelectorAll('.mermaid:not([data-processed]):not([data-rendering])');
   if (els.length === 0) return;
 
-  const nodesToRender: HTMLElement[] = [];
+  const nodesToRender: { el: HTMLElement; rawText: string }[] = [];
   els.forEach(el => {
     if (el.textContent) {
-      el.textContent = preprocessMermaidCode(el.textContent);
+      const rawText = el.textContent.trim().replace(/\r\n/g, '\n').replace(/\r/g, '\n');
       el.setAttribute('data-rendering', 'true');
-      nodesToRender.push(el as HTMLElement);
+      nodesToRender.push({ el: el as HTMLElement, rawText });
     }
   });
 
   if (nodesToRender.length === 0) return;
 
-  // Process nodes individually for robust per-diagram isolation & auto-retry
-  for (const node of nodesToRender) {
+  for (const { el, rawText } of nodesToRender) {
+    // STAGE 1: Try Native Render (Zero Mutation)
     try {
+      el.textContent = rawText;
       await mermaid.run({
-        nodes: [node],
+        nodes: [el],
         suppressErrors: true
       });
-    } catch (err) {
-      console.warn('Mermaid initial render attempt failed, applying entity fallback...', err);
-      try {
-        if (node.textContent) {
-          node.textContent = node.textContent
-            .replace(/\(/g, '#40;')
-            .replace(/\)/g, '#41;');
-        }
-        await mermaid.run({
-          nodes: [node],
-          suppressErrors: true
-        });
-      } catch (fallbackErr) {
-        console.error('Mermaid rendering failed completely for node:', fallbackErr);
-      }
+      continue; // Native succeeded!
+    } catch (_nativeErr) {
+      console.warn('Mermaid native render failed, proceeding to Stage 2 Auto-Fixer...');
+    }
+
+    // STAGE 2: Auto-Fixer Pass 1 (Sanitize labels, unquote parens, fix arrow typos)
+    try {
+      el.removeAttribute('data-processed');
+      el.textContent = preprocessMermaidCode(rawText);
+      await mermaid.run({
+        nodes: [el],
+        suppressErrors: true
+      });
+      continue; // Stage 2 succeeded!
+    } catch (_pass1Err) {
+      console.warn('Mermaid Stage 2 Auto-Fixer failed, proceeding to Stage 3 Entity Fallback...');
+    }
+
+    // STAGE 3: Auto-Fixer Pass 2 (Entity Fallback)
+    try {
+      el.removeAttribute('data-processed');
+      el.textContent = preprocessMermaidCode(rawText)
+        .replace(/\(/g, '#40;')
+        .replace(/\)/g, '#41;');
+      await mermaid.run({
+        nodes: [el],
+        suppressErrors: true
+      });
+    } catch (finalErr) {
+      console.error('Mermaid rendering failed completely for diagram node:', finalErr);
     }
   }
 }

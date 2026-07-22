@@ -1,7 +1,8 @@
-import { openFileInTab } from '../stores/content';
+import { openFileInTab, currentFilePath } from '../stores/content';
 import { open } from '@tauri-apps/plugin-dialog';
 import { readTextFile } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
+import { get } from 'svelte/store';
 
 export async function openFileByPath(filePath: string): Promise<boolean> {
   try {
@@ -37,4 +38,26 @@ export async function handleOpen(): Promise<boolean> {
     alert('Error opening file: ' + err);
   }
   return false;
+}
+
+export async function reloadActiveFile(): Promise<boolean> {
+  const path = get(currentFilePath);
+  if (!path) return false;
+
+  try {
+    const content = await invoke<string>('read_file_raw', { path });
+    const name = path.split(/[/\\]/).pop() || 'document.md';
+
+    if (typeof document !== 'undefined') {
+      document.querySelectorAll('.mermaid[data-processed]').forEach(el => {
+        el.removeAttribute('data-processed');
+      });
+    }
+
+    openFileInTab(content, path, name);
+    return true;
+  } catch (err) {
+    console.error('Failed to reload file:', err);
+    return false;
+  }
 }

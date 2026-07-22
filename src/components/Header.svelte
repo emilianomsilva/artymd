@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { theme, zoom, sidebarOpen, rtl, showHelp, previewTheme, sidebarSide } from '../stores/config';
   import { locale, t } from '../lib/i18n';
-  import { handleOpen } from '../lib/file-actions';
+  import { handleOpen, reloadActiveFile } from '../lib/file-actions';
   import { showPrintDialog } from '../stores/print';
   import PrintDialog from './PrintDialog.svelte';
 
@@ -86,6 +86,13 @@
     <button class="icon-btn" onclick={handleOpen} title={t('openFile', $locale)} aria-label="Open File">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+      </svg>
+    </button>
+
+    <button class="icon-btn" onclick={reloadActiveFile} title={t('reloadFile', $locale)} aria-label="Reload Active File">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M23 4v6h-6"></path>
+        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
       </svg>
     </button>
 

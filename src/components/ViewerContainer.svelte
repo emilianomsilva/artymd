@@ -8,6 +8,7 @@
   import { readTextFile } from '@tauri-apps/plugin-fs';
   import { renderMermaidDiagrams, initializeMermaid } from '../lib/mermaid-renderer';
   import { startFileWatcher, stopFileWatcher } from '../lib/file-watcher';
+  import { reloadActiveFile } from '../lib/file-actions';
   import FindBar from './FindBar.svelte';
   import { tick } from 'svelte';
 
@@ -46,36 +47,35 @@
     viewport.scrollTop = saved ?? 0;
   }
 
-  // Cleanup mermaid elements and manage file watcher on tab switch
+  // Reactive file watcher bound to $currentFilePath for instant auto-reload
+  $effect(() => {
+    const path = $currentFilePath;
+    if (path) {
+      startFileWatcher(path, async () => {
+        try {
+          const content = await readTextFile(path);
+          const name = path.split(/[/\\]/).pop() || 'document.md';
+          openFileInTab(content, path, name);
+        } catch (err) {
+          console.error('Failed to reload file on disk change:', err);
+        }
+      });
+    } else {
+      stopFileWatcher();
+    }
+
+    return () => {
+      stopFileWatcher();
+    };
+  });
+
+  // Cleanup mermaid elements and restore reading position on tab switch
   $effect(() => {
     const cleanup = onTabSwitch(async () => {
-      // Remove data-processed attribute so mermaid re-processes on new tab
       document.querySelectorAll('.mermaid[data-processed]').forEach(el => {
         el.removeAttribute('data-processed');
       });
 
-      // Stop old file watcher
-      await stopFileWatcher();
-
-      // Start new file watcher if current tab has a file path
-      const path = $currentFilePath;
-      if (path) {
-        await startFileWatcher(path, async (event) => {
-          // WatchEvent has 'kind' property but TypeScript doesn't see it
-          const eventKind = (event as { kind?: string }).kind;
-          if (eventKind === 'modify' || eventKind === 'Modify') {
-            try {
-              const content = await readTextFile(path);
-              const name = path.split(/[/\\]/).pop() || 'document.md';
-              openFileInTab(content, path, name);
-            } catch (err) {
-              console.error('Failed to reload file:', err);
-            }
-          }
-        });
-      }
-
-      // Restore the saved reading position after the new content renders.
       await tick();
       setTimeout(restoreScroll, 60);
     });
@@ -382,6 +382,12 @@
       return;
     }
 
+    if (e.key === 'F5' || ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'r')) {
+      e.preventDefault();
+      reloadActiveFile();
+      return;
+    }
+
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n') {
       e.preventDefault();
       createNewTab();
@@ -517,6 +523,8 @@
           <h4 style="margin: 0 0 0.5rem 0; color: var(--text-primary); font-size: 0.95rem;">Keyboard Shortcuts</h4>
           <ul style="display: grid; grid-template-columns: 1fr; gap: 0.5rem;">
             <li><kbd>{t('shortcutCtrlO', $locale)}</kbd></li>
+            <li><kbd>{t('shortcutCtrlN', $locale)}</kbd></li>
+            <li><kbd>{t('shortcutF5', $locale)}</kbd></li>
             <li><kbd>{t('shortcutCtrlTab', $locale)}</kbd></li>
             <li><kbd>{t('shortcutCtrlShiftTab', $locale)}</kbd></li>
             <li><kbd>{t('shortcutF9', $locale)}</kbd></li>
