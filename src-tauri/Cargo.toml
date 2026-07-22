@@ -1,6 +1,6 @@
 [package]
 name = "artymd"
-version = "0.1.0"
+version = "0.1.4"
 description = "A desktop Markdown editor with live preview, KaTeX, Mermaid, and syntax highlighting"
 authors = ["Emiliano M. Silva <artyfex@gmail.com>"]
 license = "AGPL-3.0-or-later"
@@ -29,6 +29,7 @@ tauri-plugin-window-state = "2"
 urlencoding = "2.1"
 fs2 = "0.4"
 libc = "0.2"
+regex = "1"
 
 [profile.release]
 strip = true

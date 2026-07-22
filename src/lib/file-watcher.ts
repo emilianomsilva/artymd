@@ -67,14 +67,15 @@ export async function stopFileWatcher(): Promise<void> {
     debounceTimer = null;
   }
   if (unwatchFn !== null) {
+    const fn = unwatchFn;
+    unwatchFn = null;
+    currentPath = null;
+    onChangeCallback = null;
     try {
-      await unwatchFn();
-      unwatchFn = null;
-      currentPath = null;
-      onChangeCallback = null;
+      await fn();
       console.log('File watcher stopped');
-    } catch (err) {
-      console.error('Failed to stop file watcher:', err);
+    } catch (_err) {
+      // Resource ID already disposed or invalid
     }
   }
 }

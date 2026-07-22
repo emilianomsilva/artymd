@@ -18,6 +18,7 @@
 
 - **KaTeX math** — render LaTeX formulas inline and in display mode (`$...$` and `$$...$$`)
 - **Mermaid diagrams** — embed ` ```mermaid ` code blocks for flowcharts, sequence diagrams, and more
+- **Dynamic Mermaid Auto-Fixer** — multi-pass auto-correction engine that repairs syntax typos and unquoted node shapes on the fly
 - **Syntax highlighting** — over 50 languages supported in fenced code blocks
 - **Multi-platform** — Linux (.deb / .rpm / .AppImage), Windows (.msi), macOS (.dmg)
 - **Find in document** — search with real-time match highlighting
@@ -25,6 +26,12 @@
 - **Print / PDF export** — styled print pipeline via Tauri's print API
 
 ## Install
+
+> **Note & Disclaimer:** ArtyMD is a new open-source project and does not yet possess commercial EV code-signing certificates for Windows or Apple Developer signing certificates for macOS. Because release binaries are un-signed:
+> - **Windows**: Windows SmartScreen or Windows Defender Firewall may display an "Unrecognized app" warning. Click **More info** $\rightarrow$ **Run anyway** to launch the installer.
+> - **macOS**: Apple Gatekeeper may display an "Unidentified developer" prompt. Right-click (or Control-click) `ArtyMD.app` in `/Applications` and select **Open**.
+>
+> The source code is 100% transparent and open source under AGPL-3.0 — you can inspect, review, or [build from source](#build-from-source) at any time.
 
 ### Linux
 
@@ -36,15 +43,11 @@ Or download the latest `.deb`, `.rpm`, or `.AppImage` from [GitHub Releases](htt
 
 ### Windows
 
-Download the latest `.msi` from [GitHub Releases](https://github.com/emilianomsilva/artymd/releases).
-
-> **Note:** ArtyMD is a new project and does not yet have a Windows code-signing certificate. Windows may show a SmartScreen warning. The source code is fully transparent — review it, build it yourself, or check the community — the application will not harm your computer.
+Download the latest `.msi` installer from [GitHub Releases](https://github.com/emilianomsilva/artymd/releases).
 
 ### macOS
 
-Download the latest `.dmg` from [GitHub Releases](https://github.com/emilianomsilva/artymd/releases). If no pre-built `.dmg` is available for your architecture, you can [build from source](#build-from-source).
-
-Requirements: Rust (1.77+), Node.js (20+).
+Download the latest `.dmg` installer from [GitHub Releases](https://github.com/emilianomsilva/artymd/releases), open the disk image, and drag ArtyMD to your `/Applications` folder. Refer to the disclaimer above for opening un-signed binaries on macOS.
 
 | Platform | Bundle |
 |----------|--------|

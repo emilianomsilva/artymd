@@ -1,10 +1,8 @@
 import mermaid from 'mermaid';
+import { invoke } from '@tauri-apps/api/core';
 
 let mermaidInitialized = false;
 
-/**
- * Initializes (or re-initializes) Mermaid with the correct theme and security settings.
- */
 export function initializeMermaid(isDark: boolean) {
   mermaid.initialize({
     startOnLoad: false,
@@ -14,115 +12,34 @@ export function initializeMermaid(isDark: boolean) {
   mermaidInitialized = true;
 }
 
-/**
- * Preprocesses and auto-corrects common user syntax errors and edge cases in Mermaid diagram code:
- * 1. Strips HTML comments (<!-- ... -->) inside code blocks.
- * 2. Unescapes double-encoded HTML entities (&amp;, &lt;, &gt;).
- * 3. Normalizes spaced arrow typos (- ->, -- >, == >).
- * 4. Normalizes direction casing (graph td -> graph TD, graph lr -> graph LR).
- * 5. Auto-quotes unquoted subgraph titles containing spaces/parens.
- * 6. Auto-quotes link/edge annotations containing parens/special characters.
- * 7. Auto-quotes unquoted node labels containing parentheses, brackets, or special symbols.
- */
-export function preprocessMermaidCode(code: string): string {
-  if (!code) return '';
+interface MermaidFixEntry {
+  description: string;
+  line: number;
+  original_text: string;
+  fixed_text: string;
+}
 
-  let cleaned = code.trim().replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+interface MermaidFixResult {
+  original: string;
+  fixed: string;
+  fixes_applied: MermaidFixEntry[];
+  diagram_type: string;
+}
 
-  // 1. Remove HTML comments
-  cleaned = cleaned.replace(/<!--[\s\S]*?-->/g, '');
-
-  // 2. Unescape double-encoded HTML entities
-  cleaned = cleaned
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>');
-
-  // 3. Normalize spaced arrow typos
-  cleaned = cleaned
-    .replace(/-\s+->/g, '-->')
-    .replace(/--\s+>/g, '-->')
-    .replace(/==\s+>/g, '==>')
-    .replace(/=\s+=>/g, '==>')
-    .replace(/-\.\s+->/g, '-.->')
-    .replace(/-\.-\s+>/g, '-.->');
-
-  // 4. Normalize direction casing in graph / flowchart declarations
-  cleaned = cleaned.replace(/^(\s*(?:graph|flowchart)\s+)(td|lr|rl|bt)\b/gim, (_, prefix, dir) => {
-    return `${prefix}${dir.toUpperCase()}`;
-  });
-
-  const quoteIfNeeded = (text: string) => {
-    let t = text.trim();
-    if (!t) return t;
-    if ((t.startsWith('"') && t.endsWith('"')) || (t.startsWith("'") && t.endsWith("'"))) {
-      return t;
-    }
-    if (/[()\[\]{}#:]/.test(t)) {
-      t = t.replace(/"/g, "'");
-      return `"${t}"`;
-    }
-    return t;
-  };
-
-  const lines = cleaned.split('\n');
-  const processedLines = lines.map(line => {
-    let l = line;
-
-    if (/^\s*(?:graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|gitGraph|mindmap|timeline|architecture)\b/i.test(l)) {
-      return l;
-    }
-
-    if (/^\s*subgraph\b/i.test(l) && !l.includes('[') && !l.includes('"')) {
-      return l.replace(/^(\s*subgraph\s+)(.+)$/i, (_, p, title) => `${p}"${title.trim()}"`);
-    }
-
-    l = l.replace(/--\s+([^"\n|]+?\([^\n|]+\)[^"\n|]*?)\s+-->/g, (_, annotation) => {
-      return `-- ${quoteIfNeeded(annotation)} -->`;
-    });
-
-    l = l.replace(/([a-zA-Z0-9_-]+)\(\[\s*(.*?)\s*\]\)/g, (_, id, label) => {
-      return `${id}([${quoteIfNeeded(label)}])`;
-    });
-
-    l = l.replace(/([a-zA-Z0-9_-]+)\[\[\s*(.*?)\s*\]\]/g, (_, id, label) => {
-      const q = quoteIfNeeded(label);
-      return `${id}[[${q}]]`;
-    });
-
-    l = l.replace(/([a-zA-Z0-9_-]+)\[\(\s*(.*?)\s*\)\]/g, (_, id, label) => {
-      return `${id}[(${quoteIfNeeded(label)})]`;
-    });
-
-    l = l.replace(/([a-zA-Z0-9_-]+)\(\(\s*(.*?)\s*\)\)/g, (_, id, label) => {
-      return `${id}((${quoteIfNeeded(label)}))`;
-    });
-
-    l = l.replace(/([a-zA-Z0-9_-]+)\[(?![\[\(])\s*([^\]]*?)\s*\]/g, (_, id, label) => {
-      return `${id}[${quoteIfNeeded(label)}]`;
-    });
-
-    l = l.replace(/([a-zA-Z0-9_-]+)\{\s*([^\}]*?)\s*\}/g, (_, id, label) => {
-      return `${id}{${quoteIfNeeded(label)}}`;
-    });
-
-    l = l.replace(/([a-zA-Z0-9_-]+)>\s*([^\]]*?)\s*\]/g, (_, id, label) => {
-      return `${id}>[${quoteIfNeeded(label)}]`;
-    });
-
-    l = l.replace(/([a-zA-Z0-9_-]+)\((?!\(|\[)\s*([^\)]*?)\s*\)/g, (_, id, label) => {
-      return `${id}(${quoteIfNeeded(label)})`;
-    });
-
-    return l;
-  });
-
-  return processedLines.join('\n');
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
 }
 
 /**
- * Finds and renders all un-processed Mermaid diagrams inside a container element.
- * Uses a Native-First, Multi-Stage Auto-Fixer Pipeline for universal diagram support.
+ * Iteratively fixes and renders Mermaid diagrams in a 3-stage loop:
+ * Pass 0: Try Raw Text natively
+ * Pass 1: Try Rust Fixer (fix_mermaid_diagram)
+ * Pass 2: Try Entity Fallback
  */
 export async function renderMermaidDiagrams(container: HTMLElement, isDark: boolean) {
   if (!mermaidInitialized) {
@@ -132,55 +49,56 @@ export async function renderMermaidDiagrams(container: HTMLElement, isDark: bool
   const els = container.querySelectorAll('.mermaid:not([data-processed]):not([data-rendering])');
   if (els.length === 0) return;
 
-  const nodesToRender: { el: HTMLElement; rawText: string }[] = [];
-  els.forEach(el => {
-    if (el.textContent) {
-      const rawText = el.textContent.trim().replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-      el.setAttribute('data-rendering', 'true');
-      nodesToRender.push({ el: el as HTMLElement, rawText });
-    }
-  });
+  for (const el of els) {
+    const rawText = el.textContent ? el.textContent.trim().replace(/\r\n/g, '\n').replace(/\r/g, '\n') : '';
+    if (!rawText) continue;
 
-  if (nodesToRender.length === 0) return;
+    el.setAttribute('data-rendering', 'true');
 
-  for (const { el, rawText } of nodesToRender) {
-    // STAGE 1: Try Native Render (Zero Mutation)
-    try {
-      el.textContent = rawText;
-      await mermaid.run({
-        nodes: [el],
-        suppressErrors: true
-      });
-      continue; // Native succeeded!
-    } catch (_nativeErr) {
-      console.warn('Mermaid native render failed, proceeding to Stage 2 Auto-Fixer...');
+    let currentCode = rawText;
+    let renderSuccess = false;
+    let renderedSvg = '';
+    let lastError = '';
+
+    for (let pass = 0; pass < 3; pass++) {
+      try {
+        if (pass === 1) {
+          try {
+            const fixRes = await invoke<MermaidFixResult>('fix_mermaid_diagram', { code: currentCode });
+            if (fixRes.fixes_applied.length > 0) {
+              console.info(`Mermaid fixer applied ${fixRes.fixes_applied.length} fixes for ${fixRes.diagram_type}:`, fixRes.fixes_applied);
+            }
+            currentCode = fixRes.fixed;
+          } catch (ipcErr) {
+            console.warn('Rust fix_mermaid_diagram IPC failed, using current code:', ipcErr);
+          }
+        } else if (pass === 2) {
+          currentCode = currentCode
+            .replace(/\(/g, '#40;')
+            .replace(/\)/g, '#41;');
+        }
+
+        const renderId = `mermaid-dyn-${Math.random().toString(36).substring(2, 9)}`;
+        const { svg } = await mermaid.render(renderId, currentCode);
+        
+        renderedSvg = svg;
+        renderSuccess = true;
+        break; // Succeeded! Exit loop!
+      } catch (err) {
+        lastError = String(err);
+        console.warn(`Mermaid render pass ${pass} failed:`, err);
+      }
     }
 
-    // STAGE 2: Auto-Fixer Pass 1 (Sanitize labels, unquote parens, fix arrow typos)
-    try {
-      el.removeAttribute('data-processed');
-      el.textContent = preprocessMermaidCode(rawText);
-      await mermaid.run({
-        nodes: [el],
-        suppressErrors: true
-      });
-      continue; // Stage 2 succeeded!
-    } catch (_pass1Err) {
-      console.warn('Mermaid Stage 2 Auto-Fixer failed, proceeding to Stage 3 Entity Fallback...');
+    if (renderSuccess && renderedSvg) {
+      el.innerHTML = renderedSvg;
+      el.setAttribute('data-processed', 'true');
+    } else {
+      console.error('All Mermaid render passes failed for element:', lastError);
+      el.innerHTML = `<div class="mermaid-error-box" style="padding: 1rem; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-tertiary); color: var(--text-primary); font-family: var(--font-sans); margin: 1rem 0;"><h4 style="margin: 0 0 0.5rem; color: #e53935; font-size: 0.95rem;">Diagram Syntax Error</h4><pre style="font-family: var(--font-mono); font-size: 0.8rem; background: rgba(0,0,0,0.1); padding: 0.5rem; border-radius: 4px; overflow-x: auto; white-space: pre-wrap;">${escapeHtml(lastError)}</pre><details><summary style="cursor: pointer; font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem;">View Source</summary><pre style="font-family: var(--font-mono); font-size: 0.8rem; margin-top: 0.5rem; white-space: pre-wrap;">${escapeHtml(rawText)}</pre></details></div>`;
+      el.setAttribute('data-processed', 'true');
     }
 
-    // STAGE 3: Auto-Fixer Pass 2 (Entity Fallback)
-    try {
-      el.removeAttribute('data-processed');
-      el.textContent = preprocessMermaidCode(rawText)
-        .replace(/\(/g, '#40;')
-        .replace(/\)/g, '#41;');
-      await mermaid.run({
-        nodes: [el],
-        suppressErrors: true
-      });
-    } catch (finalErr) {
-      console.error('Mermaid rendering failed completely for diagram node:', finalErr);
-    }
+    el.removeAttribute('data-rendering');
   }
 }

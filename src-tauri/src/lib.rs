@@ -2,6 +2,8 @@ use std::sync::Mutex;
 use fs2::FileExt;
 use tauri::{Emitter, Manager};
 
+mod mermaid;
+
 struct PendingFiles(Mutex<Vec<String>>);
 
 #[tauri::command]
@@ -187,6 +189,11 @@ fn set_default_markdown_handler() -> Result<String, String> {
     }
 }
 
+#[tauri::command]
+fn fix_mermaid_diagram(code: String) -> mermaid::MermaidFixResult {
+    mermaid::fix_mermaid_diagram(&code)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let md_files = filter_md_args(&std::env::args().collect::<Vec<_>>());
@@ -212,7 +219,7 @@ pub fn run() {
             .plugin(tauri_plugin_dialog::init())
             .plugin(tauri_plugin_window_state::Builder::default().build())
             .manage(PendingFiles(Mutex::new(md_files.clone())))
-            .invoke_handler(tauri::generate_handler![get_pending_files, set_default_markdown_handler, read_file_raw, detach_tab])
+            .invoke_handler(tauri::generate_handler![get_pending_files, set_default_markdown_handler, read_file_raw, detach_tab, fix_mermaid_diagram])
             .setup(|app| {
                 if cfg!(debug_assertions) {
                     app.handle().plugin(

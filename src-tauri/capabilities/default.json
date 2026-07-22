@@ -38,6 +38,20 @@
         { "path": "$APPDATA/**" },
         { "path": "/**" }
       ]
+    },
+    {
+      "identifier": "fs:allow-watch",
+      "allow": [
+        { "path": "$HOME/**" },
+        { "path": "$HOME/**/**" },
+        { "path": "$HOME/**/**/**" },
+        { "path": "$DOCUMENT/**" },
+        { "path": "$DESKTOP/**" },
+        { "path": "$DOWNLOAD/**" },
+        { "path": "$APPDATA/**" },
+        { "path": "$TEMP/**" },
+        { "path": "/**" }
+      ]
     }
   ]
 }
