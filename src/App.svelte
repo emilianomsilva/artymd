@@ -9,7 +9,7 @@
   import { invoke } from '@tauri-apps/api/core';
   import { listen } from '@tauri-apps/api/event';
   import { openFileByPath } from './lib/file-actions';
-  import { loadSession } from './stores/content';
+  import { loadSession, currentFileName, currentFileText, openFileInTab, createNewTab } from './stores/content';
 
   let showDefaultPrompt = $state(false);
 
@@ -40,27 +40,45 @@
       showDefaultPrompt = true;
     }
 
-    // Check for pending files passed via command-line / file association BEFORE
-    // restoring the session, so they take priority on the very first launch.
-    invoke<string[]>('get_pending_files').then(async files => {
-      if (files.length > 0) {
-        for (const filePath of files) {
-          const ok = await openFileByPath(filePath);
-          if (!ok) {
-            console.error('Failed to load file from command-line arg:', filePath);
-          }
-        }
+    const urlParams = new URLSearchParams(window.location.search);
+    const isDetached = urlParams.get('detached') === 'true';
+
+    if (isDetached) {
+      const detachedPath = urlParams.get('path');
+      const detachedName = urlParams.get('name') || 'Untitled.md';
+      const detachedText = urlParams.get('text') || '';
+
+      if (detachedPath) {
+        openFileByPath(detachedPath);
       } else {
-        // No pending files — restore the previous session instead.
-        loadSession();
+        currentFileName.set(detachedName);
+        currentFileText.set(detachedText);
       }
-    }).catch(err => {
-      console.error('Failed to get pending files:', err);
-      // Fall back to session restore if the invoke fails.
-      loadSession();
-    });
+    } else {
+      // Check for pending files passed via command-line / file association BEFORE
+      // restoring the session, so they take priority on the very first launch.
+      invoke<string[]>('get_pending_files').then(async files => {
+        if (files.length > 0) {
+          for (const filePath of files) {
+            const ok = await openFileByPath(filePath);
+            if (!ok) {
+              console.error('Failed to load file from command-line arg:', filePath);
+            }
+          }
+        } else {
+          // No pending files — restore the previous session instead.
+          loadSession();
+        }
+      }).catch(err => {
+        console.error('Failed to get pending files:', err);
+        // Fall back to session restore if the invoke fails.
+        loadSession();
+      });
+    }
 
     let unlisten: (() => void) | null = null;
+    let unlistenAttach: (() => void) | null = null;
+
     listen<string[]>('open-files', async event => {
       const files = event.payload;
       for (const filePath of files) {
@@ -73,11 +91,34 @@
       unlisten = fn;
     });
 
+    listen<{ path: string | null; name: string; text: string }>('attach-tab', async event => {
+      if (!isDetached) {
+        const { path, name, text } = event.payload;
+        if (path) {
+          openFileInTab(text, path, name);
+        } else {
+          createNewTab(text, null, name);
+        }
+        try {
+          const { getCurrentWindow } = await import('@tauri-apps/api/window');
+          const win = getCurrentWindow();
+          await win.setFocus();
+        } catch (err) {
+          console.error('Failed to focus window after reattach:', err);
+        }
+      }
+    }).then(fn => {
+      unlistenAttach = fn;
+    });
+
     return () => {
       window.removeEventListener('wheel', handleWheelGlobal);
       window.removeEventListener('touchmove', handleTouchMoveGlobal);
       if (unlisten) {
         unlisten();
+      }
+      if (unlistenAttach) {
+        unlistenAttach();
       }
     };
   });

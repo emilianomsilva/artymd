@@ -1,4 +1,5 @@
 import { writable, derived, get } from 'svelte/store';
+import { invoke } from '@tauri-apps/api/core';
 
 export interface TabItem {
   id: string;
@@ -143,6 +144,44 @@ export async function closeTab(tabId: string): Promise<boolean> {
     }
   }
   return true;
+}
+
+export async function detachTab(tabId: string) {
+  const list = get(tabsList);
+  const targetTab = list.find(t => t.id === tabId);
+  if (!targetTab) return;
+
+  try {
+    await invoke('detach_tab', {
+      path: targetTab.path,
+      name: targetTab.name,
+      text: targetTab.text
+    });
+    await closeTab(tabId);
+  } catch (err) {
+    console.error('Failed to detach tab:', err);
+  }
+}
+
+export async function reattachTab(tabId: string) {
+  const list = get(tabsList);
+  const targetTab = list.find(t => t.id === tabId);
+  if (!targetTab) return;
+
+  try {
+    const { emit } = await import('@tauri-apps/api/event');
+    const { getCurrentWindow } = await import('@tauri-apps/api/window');
+
+    await emit('attach-tab', {
+      path: targetTab.path,
+      name: targetTab.name,
+      text: targetTab.text
+    });
+    const currentWin = getCurrentWindow();
+    await currentWin.close();
+  } catch (err) {
+    console.error('Failed to reattach tab:', err);
+  }
 }
 
 export interface TocItem {

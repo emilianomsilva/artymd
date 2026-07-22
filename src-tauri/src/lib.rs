@@ -14,6 +14,45 @@ fn read_file_raw(path: String) -> Result<String, String> {
     std::fs::read_to_string(&path).map_err(|e| format!("Failed to read file: {}", e))
 }
 
+#[tauri::command]
+fn detach_tab(
+    app_handle: tauri::AppHandle,
+    path: Option<String>,
+    name: Option<String>,
+    text: Option<String>,
+) -> Result<(), String> {
+    let window_label = format!(
+        "win-{}",
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_millis())
+            .unwrap_or(0)
+    );
+
+    let mut query_params = vec!["detached=true".to_string()];
+    if let Some(ref p) = path {
+        query_params.push(format!("path={}", urlencoding::encode(p)));
+    }
+    if let Some(ref n) = name {
+        query_params.push(format!("name={}", urlencoding::encode(n)));
+    }
+    if let Some(ref t) = text {
+        query_params.push(format!("text={}", urlencoding::encode(t)));
+    }
+
+    let url = format!("index.html?{}", query_params.join("&"));
+
+    let win_title = name.as_deref().unwrap_or("ArtyMD");
+
+    tauri::WebviewWindowBuilder::new(&app_handle, window_label, tauri::WebviewUrl::App(url.into()))
+        .title(win_title)
+        .inner_size(800.0, 600.0)
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
 fn percent_decode(s: &str) -> String {
     let mut bytes = Vec::new();
     let mut chars = s.bytes();
@@ -171,8 +210,9 @@ pub fn run() {
         let app = tauri::Builder::default()
             .plugin(tauri_plugin_fs::init())
             .plugin(tauri_plugin_dialog::init())
+            .plugin(tauri_plugin_window_state::Builder::default().build())
             .manage(PendingFiles(Mutex::new(md_files.clone())))
-            .invoke_handler(tauri::generate_handler![get_pending_files, set_default_markdown_handler, read_file_raw])
+            .invoke_handler(tauri::generate_handler![get_pending_files, set_default_markdown_handler, read_file_raw, detach_tab])
             .setup(|app| {
                 if cfg!(debug_assertions) {
                     app.handle().plugin(
